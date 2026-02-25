@@ -44,10 +44,12 @@ class WanModel:
     """Définition complète d'un modèle WAN."""
     id: str                          # Identifiant unique (id dans les menus)
     label: str                       # Nom affiché dans l'UI
-    version: Literal["2.1", "2.2"]  # Version WAN
+    version: Literal["2.1", "2.2", "rapid"]  # Version WAN
     filename: str                    # Nom du fichier safetensors (low_noise pour 2.2)
-    vae: str                         # VAE à utiliser
+    vae: str                         # VAE à utiliser (ignoré pour rapid/checkpoint)
     description: str                 # Description courte
+    # True si c'est un checkpoint all-in-one (CheckpointLoaderSimple)
+    is_checkpoint: bool = False
     # Résolution recommandée
     default_width: int = 832
     default_height: int = 480
@@ -169,6 +171,25 @@ MODELS: dict[str, WanModel] = {
         size_gb=28.0,
     ),
 
+    # ── WAN 2.2 Rapid AllInOne (Phr00t) — checkpoint unique, 4 steps ─────────
+    "wan22_rapid_aio": WanModel(
+        id="wan22_rapid_aio",
+        label="WAN 2.2 Rapid AIO ⚡✨ (4 steps, I2V)",
+        version="rapid",
+        filename="wan2.2-rapid-aio-v12.safetensors",
+        vae="",  # VAE intégré dans le checkpoint
+        description="WAN 2.2 Rapid AllInOne par Phr00t. 4 steps seulement, checkpoint unique. I2V + continuité. ~10x plus rapide que WAN 2.1 14B.",
+        is_checkpoint=True,
+        default_width=832, default_height=480,
+        default_frames=81,
+        frame_options=[33, 49, 65, 81, 97],
+        default_steps=4,
+        default_cfg=1.0,
+        supports_i2v=True,
+        quality_score=8,
+        size_gb=23.3,
+    ),
+
     # ── WAN 2.2 I2V — MoE dual-model (high + low noise) ──────────────────────
     # Ref officielle: https://docs.comfy.org/tutorials/video/wan/wan2_2
     # WAN 2.2 charge DEUX modèles: high_noise pour les premiers steps,
@@ -198,7 +219,7 @@ MODELS: dict[str, WanModel] = {
 }
 
 # Modèle par défaut
-DEFAULT_MODEL_ID = "wan21_i2v_480p_fp8_scaled"
+DEFAULT_MODEL_ID = "wan22_rapid_aio"
 
 # Stratégie de sélection automatique par scène
 AUTO_MODEL_STRATEGY = {
@@ -224,8 +245,9 @@ def list_models_for_ui() -> list[tuple[str, str]]:
 def check_model_on_runpod(model: WanModel) -> bool:
     """Vérifie si le fichier modèle existe sur RunPod."""
     _UA = "Mozilla/5.0 (compatible; AI-Video-Generator/1.0)"
+    folder = "checkpoints" if model.is_checkpoint else "diffusion_models"
     try:
-        models_url = f"{COMFYUI_BASE_URL}/models/diffusion_models"
+        models_url = f"{COMFYUI_BASE_URL}/models/{folder}"
         req = urllib.request.Request(models_url, headers={"User-Agent": _UA})
         with urllib.request.urlopen(req, timeout=5) as r:
             available = json.loads(r.read())

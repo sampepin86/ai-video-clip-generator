@@ -91,9 +91,11 @@ def get_available_models_status():
     client = ComfyUIClient()
     avail = client.list_available_models()
     diff = avail.get("diffusion_models", [])
+    ckpts = avail.get("checkpoints", [])
     rows = []
     for mid, m in MODELS.items():
-        present = m.filename in diff
+        pool = ckpts if m.is_checkpoint else diff
+        present = m.filename in pool
         status = "✅" if present else "⬛ non téléchargé"
         rows.append([m.label, m.version, f"{m.default_width}×{m.default_height}",
                      f"{m.default_frames}f", status])

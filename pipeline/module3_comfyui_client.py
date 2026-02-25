@@ -372,6 +372,118 @@ def build_wan22_workflow(
     return wf
 
 
+def build_rapid_aio_workflow(
+    model: WanModel,
+    visual_prompt: str,
+    motion_prompt: str,
+    init_image_filename: str | None,
+    params: dict,
+    seed: int,
+) -> dict[str, Any]:
+    """
+    Workflow WAN 2.2 Rapid AllInOne (Phr00t).
+
+    Architecture simplifiée:
+      - CheckpointLoaderSimple (un seul fichier: UNet + CLIP + VAE intégrés)
+      - CLIPTextEncode pour pos/neg
+      - WanImageToVideo pour I2V (ou EmptyLatentVideo pour T2V)
+      - KSampler avec dpmpp_sde / beta / 4 steps / cfg 1.0
+      - Pas besoin de TeaCache (déjà rapide en 4 steps)
+    """
+    neg = "blurry, low quality, distorted, artifacts, watermark, text"
+    pos = f"{visual_prompt}, {motion_prompt}"
+
+    wf: dict[str, Any] = {
+        # ── Loader unique (checkpoint = UNet + CLIP + VAE) ───────────────
+        "ckpt_loader": {
+            "class_type": "CheckpointLoaderSimple",
+            "inputs": {"ckpt_name": model.filename},
+        },
+        # ── Conditioning ─────────────────────────────────────────────────
+        "clip_pos": {
+            "class_type": "CLIPTextEncode",
+            "inputs": {"text": pos, "clip": ["ckpt_loader", 1]},
+        },
+        "clip_neg": {
+            "class_type": "CLIPTextEncode",
+            "inputs": {"text": neg, "clip": ["ckpt_loader", 1]},
+        },
+    }
+
+    # ── I2V ou T2V ───────────────────────────────────────────────────────
+    wan_inputs: dict = {
+        "positive":   ["clip_pos", 0],
+        "negative":   ["clip_neg", 0],
+        "vae":        ["ckpt_loader", 2],
+        "width":      params["width"],
+        "height":     params["height"],
+        "length":     params["num_frames"],
+        "batch_size": 1,
+    }
+
+    if init_image_filename:
+        wf["load_image"] = {
+            "class_type": "LoadImage",
+            "inputs": {"image": init_image_filename},
+        }
+        wf["clip_vision_loader"] = {
+            "class_type": "CLIPVisionLoader",
+            "inputs": {"clip_name": CLIP_VISION_H},
+        }
+        wf["clip_vision_enc"] = {
+            "class_type": "CLIPVisionEncode",
+            "inputs": {
+                "clip_vision": ["clip_vision_loader", 0],
+                "image": ["load_image", 0],
+                "crop": "center",
+            },
+        }
+        wan_inputs["start_image"] = ["load_image", 0]
+        wan_inputs["clip_vision_output"] = ["clip_vision_enc", 0]
+
+    wf["wan_latent"] = {
+        "class_type": "WanImageToVideo",
+        "inputs": wan_inputs,
+    }
+
+    # ── KSampler: dpmpp_sde / beta / 4 steps / cfg 1.0 ──────────────────
+    wf["ksampler"] = {
+        "class_type": "KSampler",
+        "inputs": {
+            "model":        ["ckpt_loader", 0],
+            "positive":     ["wan_latent", 0],
+            "negative":     ["wan_latent", 1],
+            "latent_image": ["wan_latent", 2],
+            "seed":          seed,
+            "steps":         params["steps"],
+            "cfg":           params["cfg"],
+            "sampler_name":  "dpmpp_sde",
+            "scheduler":     "beta",
+            "denoise":       1.0,
+        },
+    }
+
+    # ── Decode + Video ───────────────────────────────────────────────────
+    wf["vae_decode"] = {
+        "class_type": "VAEDecode",
+        "inputs": {"samples": ["ksampler", 0], "vae": ["ckpt_loader", 2]},
+    }
+    wf["create_video"] = {
+        "class_type": "CreateVideo",
+        "inputs": {"images": ["vae_decode", 0], "fps": float(params["fps"])},
+    }
+    wf["save_video"] = {
+        "class_type": "SaveVideo",
+        "inputs": {
+            "video": ["create_video", 0],
+            "filename_prefix": "wan_rapid",
+            "format": "mp4",
+            "codec": "h264",
+        },
+    }
+    return wf
+
+
 def build_workflow(
     model: WanModel,
     visual_prompt: str,
@@ -395,7 +507,10 @@ def build_workflow(
     if seed < 0:
         seed = int(time.time() * 1000) % 2**32
 
-    if model.version == "2.2":
+    if model.version == "rapid":
+        return build_rapid_aio_workflow(model, visual_prompt, motion_prompt,
+                                        init_image_filename, p, seed)
+    elif model.version == "2.2":
         return build_wan22_workflow(model, visual_prompt, motion_prompt,
                                     init_image_filename, p, seed)
     else:
@@ -617,7 +732,7 @@ class ComfyUIClient:
     def list_available_models(self) -> dict[str, list[str]]:
         """Retourne les modèles disponibles dans ComfyUI par catégorie."""
         result = {}
-        for category in ("diffusion_models", "vae", "text_encoders", "clip_vision"):
+        for category in ("diffusion_models", "checkpoints", "vae", "text_encoders", "clip_vision"):
             try:
                 result[category] = json.loads(_http_get(f"{self.base_url}/models/{category}", timeout=10))
             except Exception:
