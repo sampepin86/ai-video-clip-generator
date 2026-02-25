@@ -531,7 +531,7 @@ def build_ui():
                         with gr.Row():
                             width  = gr.Number(label="Largeur",  value=1280, precision=0)
                             height = gr.Number(label="Hauteur",  value=720,  precision=0)
-                            steps  = gr.Slider(label="Steps",    minimum=10, maximum=50, step=1, value=20)
+                            steps  = gr.Slider(label="Steps",    minimum=1, maximum=50, step=1, value=20)
                             cfg    = gr.Slider(label="CFG",      minimum=1, maximum=15, step=0.5, value=5.0)
 
                 # Mise à jour params quand modèle change
