@@ -4,7 +4,7 @@
 # Full setup: ComfyUI + WAN models + Gradio UI
 #
 # Usage: Run this script on a fresh RunPod pod (RTX 4090/6000 Ada)
-#   curl -sSL https://raw.githubusercontent.com/<user>/ai-video-clip-generator/main/runpod_template.sh | bash
+#   curl -sSL https://raw.githubusercontent.com/sampepin86/ai-video-clip-generator/main/runpod_template.sh | bash
 #
 # Environment variables (set in RunPod template):
 #   GEMINI_API_KEY  — Google Gemini API key (required)
@@ -33,7 +33,7 @@ if [ -d "$APP_DIR/.git" ]; then
 else
     # If dir exists but no git, back up and re-clone
     [ -d "$APP_DIR" ] && mv "$APP_DIR" "${APP_DIR}.bak.$(date +%s)"
-    git clone https://github.com/<user>/ai-video-clip-generator.git "$APP_DIR" 2>&1 | tee -a "$LOG"
+    git clone https://github.com/sampepin86/ai-video-clip-generator.git "$APP_DIR" 2>&1 | tee -a "$LOG"
     echo "[OK] App cloned" | tee -a "$LOG"
 fi
 

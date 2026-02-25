@@ -22,7 +22,7 @@ Transform any MP3 into a synchronized AI-generated music video using WAN video m
 
 ```bash
 # 1. Clone
-git clone https://github.com/<user>/ai-video-clip-generator.git
+git clone https://github.com/sampepin86/ai-video-clip-generator.git
 cd ai-video-clip-generator
 
 # 2. Install dependencies
@@ -51,13 +51,13 @@ Set these **environment variables** in your RunPod template:
 
 Then run:
 ```bash
-curl -sSL https://raw.githubusercontent.com/<user>/ai-video-clip-generator/main/runpod_template.sh | bash
+curl -sSL https://raw.githubusercontent.com/sampepin86/ai-video-clip-generator/main/runpod_template.sh | bash
 ```
 
 Or manually:
 ```bash
 # SSH into your pod
-git clone https://github.com/<user>/ai-video-clip-generator.git /workspace/ai-video-clip-generator
+git clone https://github.com/sampepin86/ai-video-clip-generator.git /workspace/ai-video-clip-generator
 cd /workspace/ai-video-clip-generator
 bash runpod_template.sh
 ```
