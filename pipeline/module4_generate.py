@@ -21,6 +21,7 @@ def generate_all_scenes(
     resume: bool = True,
     generation_params: dict | None = None,
     model_id: str = DEFAULT_MODEL_ID,
+    stop_flag: dict | None = None,
 ) -> list[Path]:
     """
     Génère tous les clips vidéo I2V de façon séquentielle.
@@ -69,6 +70,11 @@ def generate_all_scenes(
         init_frame_b64 = _make_gray_frame_b64(w0, h0)
 
     for idx, scene in enumerate(scenes):
+        # ── Stop check ────────────────────────────────────────────────────────
+        if stop_flag and stop_flag.get("stop_requested"):
+            print(f"\n[Loop] ⏹ Arrêt demandé après {idx} scènes")
+            break
+
         scene_id = scene.get("scene_id", idx + 1)
         clip_path = output_dir / f"scene_{scene_id:03d}.mp4"
         status_prefix = f"  [{idx+1}/{total}] Scène {scene_id}"

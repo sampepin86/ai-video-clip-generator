@@ -48,6 +48,7 @@ _state = {
     "style_analysis": "",
     "clips": [],
     "running": False,
+    "stop_requested": False,
     "log": [],
 }
 
@@ -55,6 +56,15 @@ _state = {
 def _log(msg: str):
     _state["log"].append(f"[{time.strftime('%H:%M:%S')}] {msg}")
     print(msg)
+
+
+def stop_generation():
+    """Demande l'arrêt de la génération en cours."""
+    if _state["running"]:
+        _state["stop_requested"] = True
+        _log("⏹ Arrêt demandé… la scène en cours va se terminer.")
+        return "⏹ Arrêt demandé — fin de la scène en cours…"
+    return "ℹ️ Aucune génération en cours"
 
 
 # ── Fonctions du pipeline ─────────────────────────────────────────────────────
@@ -228,15 +238,16 @@ def step2_scenarios(audio_file, progress=gr.Progress()):
     progress(0, desc="Appel Gemini...")
 
     try:
+        audio_stem = Path(audio_file).stem if audio_file else "output"
         scenes, style_en, style_analysis = generate_scenarios(
             _state["segments"],
             api_key=GEMINI_API_KEY,
+            song_title=audio_stem,
         )
         _state["scenes"] = scenes
         _state["style_en"] = style_en
         _state["style_analysis"] = style_analysis
 
-        audio_stem = Path(audio_file).stem if audio_file else "output"
         sc_file = OUTPUT_DIR / f"{audio_stem}.scenes.json"
         save_scenes(scenes, str(sc_file), style_en, style_analysis)
 
@@ -268,6 +279,8 @@ def step3_generate(
     if _state["scenes"] is None:
         return "❌ Génère d'abord les scénarios", None, gr.update()
 
+    _state["stop_requested"] = False
+    _state["running"] = True
     model = get_model(model_id)
     clips_dir = OUTPUT_DIR / "clips"
     _log(f"🎥 Début génération: {len(_state['scenes'])} scènes | Modèle: {model.label}")
@@ -297,8 +310,19 @@ def step3_generate(
             resume=resume,
             generation_params=gen_params,
             on_progress=on_scene_progress,
+            stop_flag=_state,
         )
         _state["clips"] = [c for c in clips if c is not None]
+        _state["running"] = False
+
+        if _state["stop_requested"]:
+            _log(f"⏹ Génération arrêtée | {len(_state['clips'])} clips générés")
+            _state["stop_requested"] = False
+            return (
+                f"⏹ Arrêté — {len(_state['clips'])} clips générés sur {len(_state['scenes'])} scènes",
+                None,
+                gr.update(interactive=bool(_state['clips'])),
+            )
 
         _log(f"✅ {len(_state['clips'])} clips générés")
         progress(1.0, desc="Génération terminée")
@@ -503,6 +527,7 @@ def build_ui():
 
                 with gr.Row():
                     btn_generate   = gr.Button("🎥 Générer clips", variant="primary")
+                    btn_stop       = gr.Button("⏹ Stop", variant="stop")
                     btn_assemble   = gr.Button("🎞️ Assembler", variant="secondary")
                     btn_full       = gr.Button("⚡ Pipeline complet", variant="primary", size="lg")
 
@@ -546,6 +571,10 @@ def build_ui():
                     inputs=[audio_input, model_select, num_frames, width, height,
                             steps, cfg, resume_cb],
                     outputs=[status_box, video_output, btn_assemble],
+                )
+                btn_stop.click(
+                    stop_generation,
+                    outputs=[status_box],
                 )
                 btn_assemble.click(
                     step4_assemble,

@@ -88,8 +88,8 @@ def run_pipeline(
     if not skip_scenarios and not (resume and scenes_file.exists()):
         print("\n[2/5] GÉNÉRATION SCÉNARIOS (Gemini)")
         from pipeline.module2_scenarios import generate_scenarios, save_scenes
-        scenes = generate_scenarios(segments, style=style, api_key=GEMINI_API_KEY)
-        save_scenes(scenes, str(scenes_file))
+        scenes, style_en, style_analysis = generate_scenarios(segments, api_key=GEMINI_API_KEY, song_title=audio_path.stem)
+        save_scenes(scenes, str(scenes_file), style_en, style_analysis)
     else:
         print(f"\n[2/5] SCÉNARIOS [SKIP] Chargement depuis {scenes_file.name}")
         with open(scenes_file) as f:
@@ -196,7 +196,7 @@ def main() -> None:
         save_segments(segs, seg_file)
 
         from pipeline.module2_scenarios import generate_scenarios, save_scenes
-        scenes = generate_scenarios(segs, style=args.style, api_key=GEMINI_API_KEY)
+        scenes, _, _ = generate_scenarios(segs, api_key=GEMINI_API_KEY, song_title=audio_path.stem)
         sc_file = output_dir / f"{audio_path.stem}.scenes.json"
         save_scenes(scenes, str(sc_file))
 
