@@ -1,102 +1,121 @@
 # AI Video Clip Generator
 
-Generate AI video clips from audio/music using WAN 2.1/2.2 models via ComfyUI.
-Upload a song, get a transcription, let Gemini write visual scenarios for each
-segment, then generate and assemble video clips through a Gradio web interface.
+Transform any MP3 into a synchronized AI-generated music video using WAN video models on ComfyUI/RunPod.
 
-## Architecture
+## How it works
 
-```
-+-----------------------------------------------------+
-|                   Gradio UI (ui.py)                 |
-|                  localhost:7860                      |
-+----------+------------------------------+-----------+
-           |                              |
-     +-----v-----+                 +------v------+
-     |  Pipeline  |                |   ComfyUI   |
-     |  Modules   |--------------->|  localhost:  |
-     |  1 - 5     |  WebSocket +   |    8188      |
-     +------------+  REST API      +-------------+
-           |
-     +-----v-------------------------------------+
-     |  Module 1: Whisper (transcription)        |
-     |  Module 2: Gemini (scenarios)             |
-     |  Module 3: ComfyUI client (WS/REST)      |
-     |  Module 4: Video generation               |
-     |  Module 5: FFmpeg assembly                |
-     +-------------------------------------------+
-```
+1. **Audio Analysis** — Gemini 2.5 Flash analyzes the MP3 directly (lyrics, mood, tempo)
+2. **Scene Planning** — AI splits the song into 4-6 second scenes with visual/motion prompts
+3. **Video Generation** — WAN I2V models on ComfyUI generate each scene (image-to-video)
+4. **Assembly** — MoviePy stitches clips together with the original audio
 
-## Quick Start - RunPod (Recommended)
+## Supported Models
 
-### 1. Create a RunPod Template
+| Model | Type | Size | Speed | Quality |
+|-------|------|------|-------|---------|
+| WAN 2.1 I2V 480p fp8 | Image-to-Video | 16 GB | Fast | ★★★★★★★ |
+| WAN 2.1 T2V 1.3B | Text-to-Video | 2.8 GB | Ultra-fast | ★★★★ |
+| WAN 2.2 MoE I2V | Image-to-Video | 32 GB | Medium | ★★★★★★★★★ |
+| WAN 2.1 I2V 720p | Image-to-Video | 16-28 GB | Slow | ★★★★★★★★★★ |
 
-- **Docker Image**: `runpod/pytorch:2.4.0-py3.11-cuda12.4.1-devel-ubuntu22.04`
-- **Docker Start Command**: `bash /workspace/ai-video-clip-generator/runpod_start.sh`
-- **Expose HTTP Port**: `7860`
-- **Volume Mount**: `/workspace` (persistent)
-- **GPU**: RTX 4090 / RTX 6000 Ada / A6000 (24+ GB VRAM recommended)
-
-### 2. Environment Variables (set in RunPod template)
-
-| Variable | Required | Description |
-|---|---|---|
-| `GEMINI_API_KEY` | Yes | Google Gemini API key for scenario generation |
-| `RUNPOD_POD_ID` | Auto | Automatically set by RunPod |
-
-### 3. Upload project files
-
-Upload the project to `/workspace/ai-video-clip-generator/` on the pod
-(via SSH/SCP or mount from GitHub).
-
-### 4. Access the UI
-
-Once the pod starts, access the Gradio UI at:
-```
-https://<POD_ID>-7860.proxy.runpod.net
-```
-
-## Quick Start - Local (Remote ComfyUI)
-
-If you have ComfyUI running on a remote RunPod pod and want to run the UI locally:
+## Quick Start (Local)
 
 ```bash
-export GEMINI_API_KEY="your-gemini-api-key"
-export RUNPOD_POD_ID="your-pod-id"
+# 1. Clone
+git clone https://github.com/<user>/ai-video-clip-generator.git
+cd ai-video-clip-generator
+
+# 2. Install dependencies
 pip install -r requirements.txt
+
+# 3. Configure
+cp .env.example .env
+# Edit .env with your GEMINI_API_KEY and RUNPOD_POD_ID
+
+# 4. Launch UI
 python ui.py
 ```
 
-The config auto-detects whether you are on RunPod (uses localhost:8188)
-or running locally (uses RunPod proxy URL).
+## RunPod Deployment
 
-## Models Supported
+### Prerequisites
+- RunPod account with a GPU pod (RTX 4090 / RTX 6000 Ada recommended)
+- RunPod template with **ComfyUI pre-installed**
+- Gemini API key from [Google AI Studio](https://aistudio.google.com/)
 
-| Model | Type | Resolution | VRAM | Speed | Quality |
-|---|---|---|---|---|---|
-| WAN 2.1 T2V 1.3B | Text-to-Video | 832x480 | ~6 GB | Ultra-fast | 4/10 |
-| WAN 2.1 I2V 480p fp8 | Image-to-Video | 832x480 | ~18 GB | Fast | 7/10 |
-| WAN 2.1 I2V 720p fp8 | Image-to-Video | 1280x720 | ~22 GB | Medium | 9/10 |
-| WAN 2.1 I2V 720p fp16 | Image-to-Video | 1280x720 | ~28 GB | Slow | 10/10 |
-| WAN 2.2 I2V MoE fp8 | Image-to-Video | 832x480 | ~24 GB | Medium | 9/10 |
+### One-Click Setup
+
+Set these **environment variables** in your RunPod template:
+- `GEMINI_API_KEY` — Your Google Gemini API key
+- `RUNPOD_POD_ID` — Auto-populated by RunPod
+
+Then run:
+```bash
+curl -sSL https://raw.githubusercontent.com/<user>/ai-video-clip-generator/main/runpod_template.sh | bash
+```
+
+Or manually:
+```bash
+# SSH into your pod
+git clone https://github.com/<user>/ai-video-clip-generator.git /workspace/ai-video-clip-generator
+cd /workspace/ai-video-clip-generator
+bash runpod_template.sh
+```
+
+### Access
+- **Gradio UI**: `https://<pod-id>-7860.proxy.runpod.net`
+- **ComfyUI**: `https://<pod-id>-8188.proxy.runpod.net`
 
 ## Project Structure
 
 ```
-ui.py                          # Gradio web interface
-main.py                        # CLI orchestrator
-runpod_start.sh                # RunPod startup script
-setup_wan_comfyui.sh           # Model download script
-start_comfyui.sh               # ComfyUI launcher (manual)
-requirements.txt               # Python dependencies
-pipeline/
-  config.py                    # Centralized configuration
-  module1_transcribe.py        # Audio -> text segments (Whisper)
-  module2_scenarios.py         # Segments -> visual scenarios (Gemini)
-  module3_comfyui_client.py    # ComfyUI WebSocket/REST client
-  module4_generate.py          # Scenario -> video clips (ComfyUI)
-  module5_assemble.py          # Clips -> final video (FFmpeg)
+├── ui.py                      # Gradio web interface
+├── main.py                    # CLI orchestrator
+├── pipeline/
+│   ├── config.py              # Models catalog & configuration
+│   ├── module1_transcribe.py  # Whisper transcription
+│   ├── module2_scenarios.py   # Gemini scene generation
+│   ├── module3_comfyui_client.py  # ComfyUI API + WAN workflows
+│   ├── module4_generate.py    # Sequential I2V generation loop
+│   └── module5_assemble.py    # MoviePy video assembly
+├── setup_wan_comfyui.sh       # Download WAN models for ComfyUI
+├── start_all.sh               # Start ComfyUI + Gradio on RunPod
+├── runpod_template.sh         # Full RunPod one-click setup
+├── requirements.txt
+└── .env.example
 ```
+
+## CLI Usage
+
+```bash
+# Full pipeline
+python main.py song.mp3 --style "cinematic, dark atmosphere"
+
+# Planning only (no video generation)
+python main.py song.mp3 --scenes-only
+
+# Resume interrupted generation
+python main.py song.mp3 --resume
+```
+
+## Configuration
+
+All configuration is via environment variables (or `.env` file):
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `GEMINI_API_KEY` | Yes | Google Gemini API key |
+| `RUNPOD_POD_ID` | Yes | RunPod pod ID |
+| `COMFYUI_BASE_URL` | No | Auto-derived from pod ID |
+
+## Tech Stack
+
+- **Video Models**: WAN 2.1 / 2.2 (Alibaba) via ComfyUI
+- **Audio Analysis**: Google Gemini 2.5 Flash (native audio)
+- **Transcription**: OpenAI Whisper (fallback)
+- **Acceleration**: TeaCache (KJNodes) ~2-3x speedup
+- **UI**: Gradio
+- **GPU**: RunPod (RTX 4090 / 6000 Ada / A100)
 
 ## License
 

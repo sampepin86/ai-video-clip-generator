@@ -14,6 +14,15 @@ import sys
 import time
 from pathlib import Path
 
+# Load .env file if present
+_env_file = Path(__file__).parent / ".env"
+if _env_file.exists():
+    for line in _env_file.read_text().splitlines():
+        line = line.strip()
+        if line and not line.startswith("#") and "=" in line:
+            k, v = line.split("=", 1)
+            os.environ.setdefault(k.strip(), v.strip())
+
 # ── Configuration ─────────────────────────────────────────────────────────────
 GEMINI_API_KEY  = os.environ.get("GEMINI_API_KEY", "")
 COMFYUI_URL     = os.environ.get("COMFYUI_BASE_URL", "https://{}-8188.proxy.runpod.net".format(os.environ.get("RUNPOD_POD_ID", "bn7d2bx6engu1k")))

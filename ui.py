@@ -1,13 +1,23 @@
 """
 Interface Graphique — AI Video Clip Generator
-Gradio UI locale pour piloter tout le pipeline.
+Gradio UI pour piloter tout le pipeline (local ou RunPod).
 """
 from __future__ import annotations
 import json
+import os
 import sys
 import threading
 import time
 from pathlib import Path
+
+# Load .env file if present (for RunPod deployment)
+_env_file = Path(__file__).parent / ".env"
+if _env_file.exists():
+    for line in _env_file.read_text().splitlines():
+        line = line.strip()
+        if line and not line.startswith("#") and "=" in line:
+            k, v = line.split("=", 1)
+            os.environ.setdefault(k.strip(), v.strip())
 
 import gradio as gr
 
@@ -668,17 +678,19 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="AI Video Clip Generator — UI")
     parser.add_argument("--port", type=int, default=7860)
+    parser.add_argument("--server-name", default="127.0.0.1", help="Bind address (0.0.0.0 for RunPod)")
     parser.add_argument("--share", action="store_true", help="Crée un lien public Gradio")
     parser.add_argument("--no-browser", action="store_true")
     args = parser.parse_args()
 
     print("=" * 55)
     print(" AI Video Clip Generator — Interface graphique")
-    print(f" http://localhost:{args.port}")
+    print(f" http://{args.server_name}:{args.port}")
     print("=" * 55)
 
     app = build_ui()
     app.launch(
+        server_name=args.server_name,
         server_port=args.port,
         share=args.share,
         inbrowser=not args.no_browser,

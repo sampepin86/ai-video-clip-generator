@@ -79,6 +79,9 @@ $VENV_PIP install -q -r "$PROJECT_DIR/requirements.txt"
 echo "[OK] Dependencies installed"
 
 # -- 6. Export environment variables --
+# Load .env if present
+[ -f "$PROJECT_DIR/.env" ] && set -a && source "$PROJECT_DIR/.env" && set +a
+
 export RUNPOD_POD_ID="${RUNPOD_POD_ID:-}"
 export GEMINI_API_KEY="${GEMINI_API_KEY:-}"
 
@@ -93,4 +96,4 @@ echo "============================================"
 
 # -- 7. Launch Gradio UI (blocking, foreground) --
 cd "$PROJECT_DIR"
-exec $VENV_PY ui.py --server-name 0.0.0.0 --server-port 7860
+exec python ui.py --server-name 0.0.0.0 --port 7860 --no-browser
