@@ -1,0 +1,23 @@
+# AI Video Clip Generator — Dépendances
+
+# Interface graphique locale
+gradio>=4.44.0
+
+# Transcription
+openai-whisper>=20231117
+
+# Google Gemini
+google-generativeai>=0.8.0
+
+# ComfyUI WebSocket client
+websocket-client>=1.7.0
+
+# Post-production
+moviepy>=1.0.3
+imageio[ffmpeg]>=2.34.0
+
+# Utilitaires
+huggingface_hub>=1.0.0
+requests>=2.31.0
+tqdm>=4.66.0
+Pillow>=10.0.0

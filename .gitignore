@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project outputs
+output/
+clips/
+*.mp3
+*.mp4
+*.wav
+*.mkv
+*.avi
+
+# Task management
+tasks/
+
+# Logs
+*.log
+
+# Environment / secrets
+.env
+.env.example
+
+# Misc
+CLAUDE.MD
+task.md
+## Chat Customization Diagnostics.md
+dl_wan22.py
