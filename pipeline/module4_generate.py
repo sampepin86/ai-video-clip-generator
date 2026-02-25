@@ -22,6 +22,7 @@ def generate_all_scenes(
     generation_params: dict | None = None,
     model_id: str = DEFAULT_MODEL_ID,
     stop_flag: dict | None = None,
+    custom_init_image_b64: str | None = None,
 ) -> list[Path]:
     """
     Génère tous les clips vidéo I2V de façon séquentielle.
@@ -56,18 +57,23 @@ def generate_all_scenes(
     print(f"\n[Loop] Démarrage génération: {total} scènes → {output_dir}")
     stats = {"generated": 0, "skipped": 0, "failed": 0}
 
-    # ── Générer l'image init (Imagen) UNE SEULE FOIS avant la boucle ────────
+    # ── Image init pour la première scène ────────────────────────────────────
     p0 = {**(generation_params or {}), "num_frames": model.default_frames}
     w0 = p0.get("width", model.default_width)
     h0 = p0.get("height", model.default_height)
-    first_scene_prompt = scenes[0].get("visual_prompt", "") if scenes else ""
-    print(f"[Loop] Génération image init (Gemini Imagen) pour scène 1...")
-    init_frame_b64 = _generate_gemini_image_b64(first_scene_prompt, w0, h0)
-    if init_frame_b64:
-        print(f"[Loop] ✅ Image init Imagen générée ({w0}×{h0})")
+
+    if custom_init_image_b64:
+        print(f"[Loop] 🖼️ Image de départ personnalisée fournie")
+        init_frame_b64 = custom_init_image_b64
     else:
-        print(f"[Loop] ⚠️  Imagen échoué → frame grise")
-        init_frame_b64 = _make_gray_frame_b64(w0, h0)
+        first_scene_prompt = scenes[0].get("visual_prompt", "") if scenes else ""
+        print(f"[Loop] Génération image init (Gemini Imagen) pour scène 1...")
+        init_frame_b64 = _generate_gemini_image_b64(first_scene_prompt, w0, h0)
+        if init_frame_b64:
+            print(f"[Loop] ✅ Image init Imagen générée ({w0}×{h0})")
+        else:
+            print(f"[Loop] ⚠️  Imagen échoué → frame grise")
+            init_frame_b64 = _make_gray_frame_b64(w0, h0)
 
     for idx, scene in enumerate(scenes):
         # ── Stop check ────────────────────────────────────────────────────────

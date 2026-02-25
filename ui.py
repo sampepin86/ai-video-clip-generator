@@ -275,7 +275,7 @@ def step2_scenarios(audio_file, progress=gr.Progress()):
 
 
 def step3_generate(
-    audio_file, model_id, num_frames, width, height,
+    audio_file, init_image, model_id, num_frames, width, height,
     steps, cfg, resume, progress=gr.Progress()
 ):
     if _state["scenes"] is None:
@@ -297,6 +297,14 @@ def step3_generate(
         "cfg": float(cfg),
     }
 
+    # Charger l'image de départ si fournie
+    custom_init_b64 = None
+    if init_image:
+        import base64
+        with open(init_image, "rb") as f:
+            custom_init_b64 = base64.b64encode(f.read()).decode()
+        _log(f"🖼️ Image de départ personnalisée chargée")
+
     progress_steps = [0]
 
     def on_scene_progress(scene_idx, total, status):
@@ -313,6 +321,7 @@ def step3_generate(
             generation_params=gen_params,
             on_progress=on_scene_progress,
             stop_flag=_state,
+            custom_init_image_b64=custom_init_b64,
         )
         _state["clips"] = [c for c in clips if c is not None]
         _state["running"] = False
@@ -372,7 +381,7 @@ def step4_assemble(audio_file, progress=gr.Progress()):
 
 
 def run_full_pipeline(
-    audio_file, model_id, num_frames, width, height,
+    audio_file, init_image, model_id, num_frames, width, height,
     steps, cfg, resume, progress=gr.Progress()
 ):
     """Lance le pipeline complet d'un coup."""
@@ -391,7 +400,7 @@ def run_full_pipeline(
     # Step 3
     progress(0.20, desc="Génération vidéo I2V...")
     r3, _, _ = step3_generate(
-        audio_file, model_id, num_frames, width, height, steps, cfg, resume
+        audio_file, init_image, model_id, num_frames, width, height, steps, cfg, resume
     )
     logs.append(r3)
     if "❌" in r3:
@@ -457,6 +466,11 @@ def build_ui():
                             label="🎵 Fichier MP3",
                             type="filepath",
                             elem_id="audio_input",
+                        )
+                        init_image_input = gr.Image(
+                            label="🖼️ Image de départ (optionnel)",
+                            type="filepath",
+                            elem_id="init_image",
                         )
                         style_display = gr.Textbox(
                             label="🎨 Style artistique (généré par Gemini — modifiable)",
@@ -570,7 +584,7 @@ def build_ui():
                 )
                 btn_generate.click(
                     step3_generate,
-                    inputs=[audio_input, model_select, num_frames, width, height,
+                    inputs=[audio_input, init_image_input, model_select, num_frames, width, height,
                             steps, cfg, resume_cb],
                     outputs=[status_box, video_output, btn_assemble],
                 )
@@ -585,7 +599,7 @@ def build_ui():
                 )
                 btn_full.click(
                     run_full_pipeline,
-                    inputs=[audio_input, model_select, num_frames,
+                    inputs=[audio_input, init_image_input, model_select, num_frames,
                             width, height, steps, cfg, resume_cb],
                     outputs=[status_box, video_output, style_display, style_analysis_display, logs_box, scenes_table],
                 )
