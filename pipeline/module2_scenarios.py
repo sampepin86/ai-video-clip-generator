@@ -40,6 +40,13 @@ PRINCIPES FONDAMENTAUX:
 - Reste RÉALISTE et CINÉMATOGRAPHIQUE par défaut. Pense clip musical professionnel (Drake, The Weeknd, Stromae style).
 - Un personnage principal cohérent doit apparaître dans la majorité des scènes.
 
+CONTINUITÉ VISUELLE (CRUCIAL):
+- La DERNIÈRE FRAME de chaque scène devient automatiquement l'IMAGE DE DÉPART de la scène suivante.
+- Donc la FIN d'une scène doit visuellement TRANSITIONNER vers le DÉBUT de la scène suivante.
+- Évite les ruptures brutales: si scène 3 finit dans une rue sombre, scène 4 doit commencer dans un lieu visuellement compatible (pas un saut vers une plage ensoleillée).
+- Pense en termes de FLUX VISUEL continu: même palette de couleurs entre scènes adjacentes, transitions de lieux progressives.
+- Si tu changes de lieu, fais-le graduellement (intérieur → porte → extérieur) plutôt que brutalement.
+
 RÈGLES TECHNIQUES STRICTES:
 1. Chaque scène dure EXACTEMENT entre 4 et 6 secondes. JAMAIS plus de 6s. JAMAIS moins de 4s.
 2. Les scènes couvrent TOUTE la durée de la chanson sans trou ni chevauchement.
@@ -51,12 +58,15 @@ RÈGLES TECHNIQUES STRICTES:
    - Le style photo (35mm film, shallow depth of field, high contrast...)
 5. Les motion_prompts décrivent le mouvement de caméra (pas le sujet).
 6. Les consistency_tags IDENTIQUES pour le personnage principal à travers tout le clip.
+7. Le visual_prompt de chaque scène doit décrire un point de DÉPART visuellement compatible avec la FIN de la scène précédente.
 
 MAUVAIS EXEMPLE (trop générique, déconnecté des paroles):
   "A holographic interface in a cyberpunk cityscape with neon lights"
 
-BON EXEMPLE (visuel lié aux paroles "I'm walking through the rain alone"):
-  "Cinematic medium shot of a young man walking alone on a rain-soaked city street at night, streetlights reflecting on wet asphalt, moody blue-orange color grading, 35mm film grain, shallow depth of field, urban atmosphere"
+BON EXEMPLE (continuité visuelle entre scènes adjacentes):
+  Scène 3 (paroles: "walking through the rain"): "Cinematic medium shot of a young man walking alone on a rain-soaked city street at night, streetlights reflecting on wet asphalt, moody blue-orange color grading, 35mm film grain, shallow depth of field"
+  Scène 4 (paroles: "I stop and look up"): "Close-up of same young man stopping on the rain-soaked sidewalk, tilting his head up toward the sky, rain drops on his face, neon signs blurred in background, same moody blue-orange tones, 35mm film grain"
+  → La fin de scène 3 (homme marchant sous la pluie en ville) transitionne naturellement vers scène 4 (même homme, même lieu, action suivante)
 
 FORMAT DE SORTIE (objet JSON strict):
 {
